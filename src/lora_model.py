@@ -163,19 +163,21 @@ class LORAEngineGeneration(object):
     def __init__(self, 
                 base_path,
                 project_path,
+                tokenizer,
                 dataset_name='math_with_reason',
                 device="cuda"):
         self.base_path = base_path
         self.project_path = project_path
+        self.tokenizer = tokenizer
         self.adapter_path = f"{self.project_path}/models/math_with_reason_13bf"
         self.dataset_name = dataset_name
         self.device=device
-        self.load_pretrained_network()
+        self.load_pretrained_network(tokenizer)
         self.load_datasets()
 
-    def load_pretrained_network(self):
+    def load_pretrained_network(self, tokenizer):
         # setup tokenizer
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.base_path)
+        self.tokenizer = tokenizer
         self.tokenizer.padding_side = "right"
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
