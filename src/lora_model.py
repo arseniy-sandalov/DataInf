@@ -164,12 +164,13 @@ class LORAEngineGeneration(object):
                 base_path,
                 project_path,
                 tokenizer,
-                dataset_name='math_with_reason',
+                dataset_name,
+                adapter_path,
                 device="cuda"):
         self.base_path = base_path
         self.project_path = project_path
         self.tokenizer = tokenizer
-        self.adapter_path = f"{self.project_path}/models/math_with_reason_13bf"
+        self.adapter_path = adapter_path
         self.dataset_name = dataset_name
         self.device=device
         self.load_pretrained_network(tokenizer)
