@@ -7,8 +7,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     get_linear_schedule_with_warmup,
     BitsAndBytesConfig,
-    LlamaForCausalLM,
-    LlamaTokenizer
+    T5ForConditionalGeneration,
+    T5Tokenizer
 )
 from peft import (
     LoraConfig,
@@ -184,7 +184,7 @@ class LORAEngineGeneration(object):
 
         # load a base model
         quantization_config = BitsAndBytesConfig(load_in_8bit=True, load_in_4bit=False)
-        base_model = LlamaForCausalLM.from_pretrained(
+        base_model = T5ForConditionalGeneration.from_pretrained(
             self.base_path,
             quantization_config=quantization_config,
             torch_dtype=torch.bfloat16,
