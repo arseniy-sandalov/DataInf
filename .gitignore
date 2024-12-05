@@ -1,3 +1,7 @@
+# dataset cache dir
+/home/arseniy/Документы/Projects/Python/SISA/DataInf/DataInf/datasets/yahoo_cache
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
