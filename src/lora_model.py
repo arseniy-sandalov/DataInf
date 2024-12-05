@@ -213,7 +213,7 @@ class LORAEngineGeneration(object):
         if 'with_reason' in self.dataset_name:
             column_list=["text", "answer", "variation", "prompt", "reason"]
         else:
-            column_list=["text", "answer", "variation", "prompt"]
+            column_list=["question", "answer", "main_category", "prompt"]
 
         tokenized_datasets=dict()
         tokenized_datasets["train"] = self.train_dataset.map(
