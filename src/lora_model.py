@@ -229,6 +229,8 @@ class LORAEngineGeneration(object):
         collate_fn = lambda x: self.tokenizer.pad(x, padding="longest", return_tensors="pt")
 
         return tokenized_datasets, collate_fn
+    
+################################################################################################
 
     def compute_gradient(self, tokenized_datasets, collate_fn):
         train_dataloader_stochastic = DataLoader(tokenized_datasets["train"], 
@@ -239,6 +241,45 @@ class LORAEngineGeneration(object):
                                                   shuffle=False,
                                                   collate_fn=collate_fn,
                                                   batch_size=1)
+        
+        def check_batch_integrity(dataloader, device):
+            print("Checking batch integrity...")
+            for step, batch in enumerate(dataloader):
+                # Move batch to device
+                batch = {k: v.to(device) for k, v in batch.items()}
+
+                # Check if keys exist
+                if 'input_ids' not in batch or 'labels' not in batch:
+                    print(f"Step {step}: Missing 'input_ids' or 'labels' in the batch.")
+                    continue
+
+                # Check shapes of tensors
+                input_ids_shape = batch['input_ids'].shape
+                labels_shape = batch['labels'].shape
+                print(f"Step {step}: input_ids shape: {input_ids_shape}, labels shape: {labels_shape}")
+
+                # Ensure tensors are not empty
+                if batch['input_ids'].numel() == 0 or batch['labels'].numel() == 0:
+                    print(f"Step {step}: Empty tensors detected in 'input_ids' or 'labels'.")
+                    continue
+
+                # Check for data mismatch
+                if input_ids_shape != labels_shape:
+                    print(f"Step {step}: Mismatch in shapes: input_ids ({input_ids_shape}) vs labels ({labels_shape}).")
+                else:
+                    print(f"Step {step}: Batch integrity verified.")
+
+                # Limit the number of batches to check (optional)
+                if step >= 5:  # Check the first 5 batches only
+                    print("...stopping after 5 batches.")
+                    break
+                
+        check_batch_integrity(train_dataloader_stochastic, self.device)
+        check_batch_integrity(val_dataloader_stochastic, self.device)
+        
+        
+        
+        
         # Compute the gradient
         self.model.eval()
         tr_grad_dict = {}
@@ -285,3 +326,4 @@ class LORAEngineGeneration(object):
             
         return tr_grad_dict, val_grad_dict
 
+################################################################################################
