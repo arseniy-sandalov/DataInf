@@ -227,19 +227,19 @@ class LORAEngineGeneration(object):
         with self.tokenizer.as_target_tokenizer():
           labels = self.tokenizer(
           answers,
-          max_length=128,
+          max_length=512,
           padding='max_length',
           truncation=True
           )
             
         model_inputs['labels'] = labels['input_ids']
-        '''  
+         
         # Replace padding token id with -100 for loss calculation
         model_inputs['labels'] = [
           [(label if label != self.tokenizer.pad_token_id else -100) for label in labels] 
           for labels in model_inputs['labels']
         ]
-        '''
+        
         return model_inputs
 
       # Remove all original columns since we don't need them anymore
