@@ -320,7 +320,7 @@ class LORAEngineGeneration(object):
 
         for step, batch in enumerate(tqdm(train_dataloader_stochastic)):
             self.model.zero_grad() # zeroing out gradient
-            #batch['labels'] = batch['input_ids']
+            batch['labels'] = batch['input_ids']
             #batch.to(self.device)
             batch = {k: v.to(self.device) for k, v in batch.items()}
             outputs = self.model(**batch)
@@ -343,7 +343,7 @@ class LORAEngineGeneration(object):
 
         for step, batch in enumerate(tqdm(val_dataloader_stochastic)):
             self.model.zero_grad() # zeroing out gradient
-            #batch['labels'] = batch['input_ids']
+            batch['labels'] = batch['input_ids']
             #batch.to(self.device)
             batch = {k: v.to(self.device) for k, v in batch.items()}
             outputs = self.model(**batch)
