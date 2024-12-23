@@ -206,66 +206,66 @@ class LORAEngineGeneration(object):
         self.train_dataset = Dataset.load_from_disk(self.train_path)
         self.validation_dataset = Dataset.load_from_disk(self.test_path)
 
-def create_tokenized_datasets(self):
-    def tokenize_func(examples):
-        # Format inputs with a clear prefix for QA task
-        prompts = [f"answer this question: {q}" for q in examples["question"]]
-        answers = examples["answer"]
+    def create_tokenized_datasets(self):
+        def tokenize_func(examples):
+            # Format inputs with a clear prefix for QA task
+            prompts = [f"answer this question: {q}" for q in examples["question"]]
+            answers = examples["answer"]
+            
+            # Tokenize inputs
+            model_inputs = self.tokenizer(
+                prompts,
+                max_length=512,  # Increased for longer questions/context
+                padding='max_length',
+                truncation=True,
+                return_tensors="pt"
+            )
+            
+            # Tokenize answers (labels)
+            labels = self.tokenizer(
+                answers,
+                max_length=128,  # Shorter for answers
+                padding='max_length',
+                truncation=True,
+                return_tensors="pt"
+            ).input_ids
+            
+            # Replace padding token id with -100 for loss calculation
+            labels[labels == self.tokenizer.pad_token_id] = -100
+            
+            # Add labels to model inputs
+            model_inputs['labels'] = labels
+            
+            return model_inputs
+
+        # Create tokenized datasets
+        tokenized_datasets = {}
         
-        # Tokenize inputs
-        model_inputs = self.tokenizer(
-            prompts,
-            max_length=512,  # Increased for longer questions/context
-            padding='max_length',
-            truncation=True,
+        # Remove columns we don't need
+        column_list = [col for col in self.train_dataset.column_names if col not in ["question", "answer"]]
+        
+        tokenized_datasets["train"] = self.train_dataset.map(
+            tokenize_func,
+            batched=True,
+            remove_columns=column_list,
+        )
+        
+        tokenized_datasets["validation"] = self.validation_dataset.map(
+            tokenize_func,
+            batched=True,
+            remove_columns=column_list,
+        )
+        
+        # Use DataCollatorForSeq2Seq instead of simple padding
+        collate_fn = DataCollatorForSeq2Seq(
+            tokenizer=self.tokenizer,
+            model=None,  # Will be set during training
+            padding=True,
             return_tensors="pt"
         )
         
-        # Tokenize answers (labels)
-        labels = self.tokenizer(
-            answers,
-            max_length=128,  # Shorter for answers
-            padding='max_length',
-            truncation=True,
-            return_tensors="pt"
-        ).input_ids
+        return tokenized_datasets, collate_fn
         
-        # Replace padding token id with -100 for loss calculation
-        labels[labels == self.tokenizer.pad_token_id] = -100
-        
-        # Add labels to model inputs
-        model_inputs['labels'] = labels
-        
-        return model_inputs
-
-    # Create tokenized datasets
-    tokenized_datasets = {}
-    
-    # Remove columns we don't need
-    column_list = [col for col in self.train_dataset.column_names if col not in ["question", "answer"]]
-    
-    tokenized_datasets["train"] = self.train_dataset.map(
-        tokenize_func,
-        batched=True,
-        remove_columns=column_list,
-    )
-    
-    tokenized_datasets["validation"] = self.validation_dataset.map(
-        tokenize_func,
-        batched=True,
-        remove_columns=column_list,
-    )
-    
-    # Use DataCollatorForSeq2Seq instead of simple padding
-    collate_fn = DataCollatorForSeq2Seq(
-        tokenizer=self.tokenizer,
-        model=None,  # Will be set during training
-        padding=True,
-        return_tensors="pt"
-    )
-    
-    return tokenized_datasets, collate_fn
-    
 ################################################################################################
 
     def compute_gradient(self, tokenized_datasets, collate_fn):
