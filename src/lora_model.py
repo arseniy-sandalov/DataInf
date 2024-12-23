@@ -233,13 +233,13 @@ class LORAEngineGeneration(object):
           )
             
         model_inputs['labels'] = labels['input_ids']
-            
+        '''  
         # Replace padding token id with -100 for loss calculation
         model_inputs['labels'] = [
           [(label if label != self.tokenizer.pad_token_id else -100) for label in labels] 
           for labels in model_inputs['labels']
         ]
-            
+        '''
         return model_inputs
 
       # Remove all original columns since we don't need them anymore
