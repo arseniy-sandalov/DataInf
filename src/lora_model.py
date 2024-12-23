@@ -207,64 +207,64 @@ class LORAEngineGeneration(object):
         self.validation_dataset = Dataset.load_from_disk(self.test_path)
 
     def create_tokenized_datasets(self):
-        def tokenize_func(examples):
-            # Format inputs with a clear prefix for QA task
-            prompts = [f"answer this question: {q}" for q in examples["question"]]
-            answers = examples["answer"]
+      def tokenize_func(examples):
+        # Format inputs with a clear prefix for QA task
+        questions = examples["question"]
+        answers = examples["answer"]
             
-            # Tokenize inputs
-            model_inputs = self.tokenizer(
-                prompts,
-                max_length=512,  # Increased for longer questions/context
-                padding='max_length',
-                truncation=True,
-                return_tensors="pt"
-            )
+        # Create input text with proper formatting
+        inputs = [f"answer this question: {q}" for q in questions]
             
-            # Tokenize answers (labels)
-            labels = self.tokenizer(
-                answers,
-                max_length=128,  # Shorter for answers
-                padding='max_length',
-                truncation=True,
-                return_tensors="pt"
-            ).input_ids
+        # Tokenize inputs
+        model_inputs = self.tokenizer(
+          inputs,
+          max_length=512,
+          padding='max_length',
+          truncation=True
+          )
             
-            # Replace padding token id with -100 for loss calculation
-            labels[labels == self.tokenizer.pad_token_id] = -100
+          # Tokenize labels (answers)
+        with self.tokenizer.as_target_tokenizer():
+          labels = self.tokenizer(
+          answers,
+          max_length=128,
+          padding='max_length',
+          truncation=True
+          )
             
-            # Add labels to model inputs
-            model_inputs['labels'] = labels
+        model_inputs['labels'] = labels['input_ids']
             
-            return model_inputs
+        # Replace padding token id with -100 for loss calculation
+        model_inputs['labels'] = [
+          [(label if label != self.tokenizer.pad_token_id else -100) for label in labels] 
+          for labels in model_inputs['labels']
+        ]
+            
+        return model_inputs
 
-        # Create tokenized datasets
-        tokenized_datasets = {}
+      # Remove all original columns since we don't need them anymore
+      tokenized_datasets = {}
+      tokenized_datasets["train"] = self.train_dataset.map(
+        tokenize_func,
+        batched=True,
+        remove_columns=self.train_dataset.column_names  # Remove ALL original columns
+      )
         
-        # Remove columns we don't need
-        column_list = [col for col in self.train_dataset.column_names if col not in ["question", "answer"]]
+      tokenized_datasets["validation"] = self.validation_dataset.map(
+      tokenize_func,
+      batched=True,
+      remove_columns=self.validation_dataset.column_names
+      )
         
-        tokenized_datasets["train"] = self.train_dataset.map(
-            tokenize_func,
-            batched=True,
-            remove_columns=column_list,
-        )
+        # Use DataCollatorForSeq2Seq
+      collate_fn = DataCollatorForSeq2Seq(
+        tokenizer=self.tokenizer,
+        model=None,
+        padding=True,
+        return_tensors="pt"
+      )
         
-        tokenized_datasets["validation"] = self.validation_dataset.map(
-            tokenize_func,
-            batched=True,
-            remove_columns=column_list,
-        )
-        
-        # Use DataCollatorForSeq2Seq instead of simple padding
-        collate_fn = DataCollatorForSeq2Seq(
-            tokenizer=self.tokenizer,
-            model=None,  # Will be set during training
-            padding=True,
-            return_tensors="pt"
-        )
-        
-        return tokenized_datasets, collate_fn
+      return tokenized_datasets, collate_fn
         
 ################################################################################################
 
