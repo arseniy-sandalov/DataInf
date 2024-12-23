@@ -8,7 +8,8 @@ from transformers import (
     get_linear_schedule_with_warmup,
     BitsAndBytesConfig,
     T5ForConditionalGeneration,
-    T5Tokenizer
+    T5Tokenizer,
+    DataCollatorForSeq2Seq
 )
 from peft import (
     LoraConfig,
@@ -205,30 +206,65 @@ class LORAEngineGeneration(object):
         self.train_dataset = Dataset.load_from_disk(self.train_path)
         self.validation_dataset = Dataset.load_from_disk(self.test_path)
 
-    def create_tokenized_datasets(self):
-        tokenize_func = lambda x: self.tokenizer(
-            x["prompt"], truncation=True, padding=True, max_length=128, return_tensors="pt" # text should be more appropritate
-        ).to(self.device)
-
-        if 'with_reason' in self.dataset_name:
-            column_list=["text", "answer", "variation", "prompt", "reason"]
-        else:
-            column_list=["question", "answer", "main_category", "prompt"]
-
-        tokenized_datasets=dict()
-        tokenized_datasets["train"] = self.train_dataset.map(
-            tokenize_func,
-            batched=True,
-            remove_columns=column_list,
+def create_tokenized_datasets(self):
+    def tokenize_func(examples):
+        # Format inputs with a clear prefix for QA task
+        prompts = [f"answer this question: {q}" for q in examples["question"]]
+        answers = examples["answer"]
+        
+        # Tokenize inputs
+        model_inputs = self.tokenizer(
+            prompts,
+            max_length=512,  # Increased for longer questions/context
+            padding='max_length',
+            truncation=True,
+            return_tensors="pt"
         )
-        tokenized_datasets["validation"] = self.validation_dataset.map(
-            tokenize_func,
-            batched=True,
-            remove_columns=column_list,
-        )
-        collate_fn = lambda x: self.tokenizer.pad(x, padding="longest", return_tensors="pt")
+        
+        # Tokenize answers (labels)
+        labels = self.tokenizer(
+            answers,
+            max_length=128,  # Shorter for answers
+            padding='max_length',
+            truncation=True,
+            return_tensors="pt"
+        ).input_ids
+        
+        # Replace padding token id with -100 for loss calculation
+        labels[labels == self.tokenizer.pad_token_id] = -100
+        
+        # Add labels to model inputs
+        model_inputs['labels'] = labels
+        
+        return model_inputs
 
-        return tokenized_datasets, collate_fn
+    # Create tokenized datasets
+    tokenized_datasets = {}
+    
+    # Remove columns we don't need
+    column_list = [col for col in self.train_dataset.column_names if col not in ["question", "answer"]]
+    
+    tokenized_datasets["train"] = self.train_dataset.map(
+        tokenize_func,
+        batched=True,
+        remove_columns=column_list,
+    )
+    
+    tokenized_datasets["validation"] = self.validation_dataset.map(
+        tokenize_func,
+        batched=True,
+        remove_columns=column_list,
+    )
+    
+    # Use DataCollatorForSeq2Seq instead of simple padding
+    collate_fn = DataCollatorForSeq2Seq(
+        tokenizer=self.tokenizer,
+        model=None,  # Will be set during training
+        padding=True,
+        return_tensors="pt"
+    )
+    
+    return tokenized_datasets, collate_fn
     
 ################################################################################################
 
@@ -246,6 +282,7 @@ class LORAEngineGeneration(object):
             print("Checking batch integrity...")
             for step, batch in enumerate(dataloader):
                 # Move batch to device
+                print(f"Step {step} Batch Keys: {batch.keys()}")
                 batch = {k: v.to(device) for k, v in batch.items()}
 
                 # Check if keys exist
