@@ -314,16 +314,15 @@ class LORAEngineGeneration(object):
         check_batch_integrity(train_dataloader_stochastic, self.device)
         check_batch_integrity(val_dataloader_stochastic, self.device)
         
-        
-        
-        
         # Compute the gradient
         self.model.eval()
         tr_grad_dict = {}
+
         for step, batch in enumerate(tqdm(train_dataloader_stochastic)):
             self.model.zero_grad() # zeroing out gradient
-            batch['labels'] = batch['input_ids']
-            batch.to(self.device)
+            #batch['labels'] = batch['input_ids']
+            #batch.to(self.device)
+            batch = {k: v.to(self.device) for k, v in batch.items()}
             outputs = self.model(**batch)
             loss = outputs.loss
             loss.backward()
@@ -341,10 +340,12 @@ class LORAEngineGeneration(object):
             del grad_dict
             
         val_grad_dict = {}
+
         for step, batch in enumerate(tqdm(val_dataloader_stochastic)):
             self.model.zero_grad() # zeroing out gradient
-            batch['labels'] = batch['input_ids']
-            batch.to(self.device)
+            #batch['labels'] = batch['input_ids']
+            #batch.to(self.device)
+            batch = {k: v.to(self.device) for k, v in batch.items()}
             outputs = self.model(**batch)
             loss = outputs.loss
             loss.backward()
