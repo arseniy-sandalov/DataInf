@@ -133,8 +133,8 @@ else:
     peft_config = None
 
 from transformers import LlamaForCausalLM, LlamaTokenizer, get_linear_schedule_with_warmup, set_seed
-
-llama_tokenizer = LlamaTokenizer.from_pretrained(script_args.model_name)
+from transformers import AutoTokenizer
+llama_tokenizer = AutoTokenizer.from_pretrained(script_args.model_name, use_auth_token=script_args.use_auth_token)
 llama_tokenizer.padding_side = 'right'
 llama_tokenizer.pad_token = llama_tokenizer.eos_token
 
