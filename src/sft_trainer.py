@@ -35,7 +35,7 @@ class ScriptArguments:
     The name of the Casual LM model we wish to fine with SFTTrainer
     """
 
-    model_name: Optional[str] = field(default="", metadata={"help": "the model name"})
+    model_name: Optional[str] = field(default="prompt", metadata={"help": "the model name"})
     dataset_name: Optional[str] = field(
         default="", metadata={"help": "the dataset name"}
     )
