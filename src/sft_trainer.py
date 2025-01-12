@@ -143,9 +143,9 @@ trainer = SFTTrainer(
     model=model,
     tokenizer=llama_tokenizer,
     args=training_args,
-    max_seq_length=script_args.seq_length,
+    #max_seq_length=script_args.seq_length,
     train_dataset=dataset,
-    dataset_text_field=script_args.dataset_text_field,
+    #dataset_text_field=script_args.dataset_text_field,
     peft_config=peft_config,
     # optim="adamw_torch_fused"
 )
