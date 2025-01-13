@@ -163,19 +163,26 @@ class LORAEngineGeneration(object):
     def __init__(self, 
                 base_path,
                 project_path,
-                dataset_name='math_with_reason',
+                train_path,
+                test_path,
+                tokenizer,
+                dataset_name,
+                adapter_path,
                 device="cuda"):
         self.base_path = base_path
         self.project_path = project_path
-        self.adapter_path = f"{self.project_path}/models/math_with_reason_13bf"
+        self.train_path = train_path
+        self.test_path = test_path
+        self.tokenizer = tokenizer
+        self.adapter_path = adapter_path
         self.dataset_name = dataset_name
         self.device=device
-        self.load_pretrained_network()
+        self.load_pretrained_network(tokenizer)
         self.load_datasets()
 
-    def load_pretrained_network(self):
+    def load_pretrained_network(self, tokenizer):
         # setup tokenizer
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.base_path)
+        self.tokenizer = tokenizer
         self.tokenizer.padding_side = "right"
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
@@ -195,8 +202,8 @@ class LORAEngineGeneration(object):
         self.finetuned_config = LoraConfig.from_pretrained(pretrained_model_name_or_path=self.adapter_path)
 
     def load_datasets(self):
-        self.train_dataset = Dataset.load_from_disk(f"{self.project_path}/datasets/{self.dataset_name}_train.hf")
-        self.validation_dataset = Dataset.load_from_disk(f"{self.project_path}/datasets/{self.dataset_name}_test.hf")
+        self.train_dataset = Dataset.load_from_disk(self.train_path)
+        self.validation_dataset = Dataset.load_from_disk(self.test_path)
 
     def create_tokenized_datasets(self):
         tokenize_func = lambda x: self.tokenizer(
