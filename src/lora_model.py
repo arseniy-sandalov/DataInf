@@ -230,15 +230,15 @@ class LORAEngineGeneration(object):
 
         return tokenized_datasets, collate_fn
 
-    def compute_gradient(self, tokenized_datasets, collate_fn):
+    def compute_gradient(self, tokenized_datasets, collate_fn, batch_size = 1):
         train_dataloader_stochastic = DataLoader(tokenized_datasets["train"], 
                                                   shuffle=False,
                                                   collate_fn=collate_fn,
-                                                  batch_size=1)
+                                                  batch_size=batch_size)
         val_dataloader_stochastic = DataLoader(tokenized_datasets["validation"], 
                                                   shuffle=False,
                                                   collate_fn=collate_fn,
-                                                  batch_size=1)
+                                                  batch_size=batch_size)
         # Compute the gradient
         self.model.eval()
         tr_grad_dict = {}
